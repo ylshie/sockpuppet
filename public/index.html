@@ -1,0 +1,76 @@
+<Html>
+   <form id="form" action="/upload" method="post" enctype="multipart/form-data">
+      <input type="file" id="upload">
+   </form>
+   <button onclick="UnPack()">Unpack</button>
+   <button onclick="GetName()">Get Name</button>
+</Html>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/javascript-canvas-to-blob/3.4.0/js/canvas-to-blob.min.js"></script>
+
+<script>
+   var apkname = null;
+
+   function sendFormData(name, data) {
+      const formData = new FormData();
+
+      formData.append("name", name);
+      
+      // HTML file input, chosen by user
+      //formData.append("userfile", fileInputElement.files[0]);
+      
+      // JavaScript file-like object
+      //const content = '<q id="a"><span id="b">hey!</span></q>'; // the body of the new file…
+      //const blob = new Blob([JSON.stringify(data)], { type: "text/json"});
+      var blob = window.dataURLtoBlob(data);
+      formData.append("file", blob);
+      
+      const request = new XMLHttpRequest();
+      request.open("POST", "http://localhost:3000/upload");
+      request.send(formData);
+   }
+   async function UnPack() {
+      const trade3Header = { 'Content-Type': 'application/json' };
+      const trade3Option = {
+         method: 'POST',
+         headers: trade3Header,
+      }
+      let options     = Object.assign({},trade3Option);
+      options.body    = JSON.stringify( { apkname:apkname } ) ;
+      const res       = await fetch('/unpack', options);
+      const data      = await res.json();
+
+      console.log(data);
+   }
+   async function GetName() {
+      const trade3Header = { 'Content-Type': 'application/json' };
+      const trade3Option = {
+         method: 'POST',
+         headers: trade3Header,
+      }
+      let options     = Object.assign({},trade3Option);
+      options.body    = JSON.stringify( { apkname:apkname } ) ;
+      const res       = await fetch('/getname', options);
+      const data      = await res.json();
+
+      console.log(data);
+   }
+   //const jsondata = {a: 1111, b: 2222}
+   document.getElementById("upload").onchange = function() {
+   //   document.getElementById("form").submit();
+   //   sendFormData(jsondata);
+      var file = document.getElementById("upload").files[0];
+      var reader = new FileReader();
+      reader.onload = function() {
+         //console.log(reader.result);
+         //document.getElementById("display").src = reader.result;
+         // image editing
+         // ...
+         //var blob = window.dataURLtoBlob(reader.result);
+         //console.log(blob, new File([blob], "image.png", {type: "image/png"}));
+         sendFormData(file.name, reader.result)
+         apkname = file.name;
+      };
+      reader.readAsDataURL(file);
+   }
+</script>
