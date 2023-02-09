@@ -1,7 +1,48 @@
+<head>
+   <link rel=stylesheet type="text/css" href="index.css">
+</head>
 <Html>
-   <form id="form" action="/upload" method="post" enctype="multipart/form-data">
-      <input type="file" id="upload"><label id="upload_status"></label>
-   </form>
+   <div class="panel">
+      <div class="block">
+         <div class="title">
+            <label>1. Select apk file Choose file</label>
+         </div>
+         <form id="form" action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" id="upload">
+            <label id="upload_status"></label>
+         </form>
+      </div> 
+      <div class="block">
+         <div class="title">
+            <label>2. Change package name</label>
+         </div>
+         <div>
+            <label>current:</label>
+            <input type="text" id="current_domain"  disabled/>
+            <input type="text" id="current_company" disabled/>
+            <input type="text" id="current_package" disabled/>
+         </div>
+         <div>
+            <label>replace:</label>
+            <input type="text" id="replace_domain"  disabled/>
+            <input type="text" id="replace_company"/>
+            <input type="text" id="replace_package"/>
+         </div>
+      </div>
+      <div class="block">
+         <div class="title">
+            <label>3. Replace and create new apk</label>
+         </div>
+         <div>
+            <button onclick="ReplacePackage()">Replace</button>
+            <label id="replace_status"></label>
+         </div>
+         <div>
+            Download here: <a id="download_link" href=""></a>
+         </div>
+      </div>
+   </div>
+   <!--
    <div>
       <button onclick="Clean()">Clean</button>
    </div>
@@ -21,12 +62,15 @@
    <div>
       <button onclick="All()">All</button>
    </div>
+   -->
 </Html>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/javascript-canvas-to-blob/3.4.0/js/canvas-to-blob.min.js"></script>
 
 <script>
    var apkname = null;   
+   var mem  = {};
+
    const trade3Option = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -47,12 +91,16 @@
       formData.append("file", blob);
       
       const request = new XMLHttpRequest();
+      const elm = document.getElementById("upload_status");
       //request.open("POST", "http://localhost:3000/upload");
       request.open("POST", "./upload");
       request.send(formData);
+      if (elm) elm.innerHTML = "Uploading"
       request.onreadystatechange = (event) => { // Call a function when the state changes.
          if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
-            // Request finished. Do processing here.
+            const text = request.responseText;
+            apkname = text;
+            console.log("upload", text)
          } else {
 
          }
@@ -65,14 +113,12 @@
       };
       request.onprogress = (event) => { 
          console.log("onprogress", event);
-         const elm = document.getElementById("upload_status");
-
+         
          if (elm) elm.innerHTML = 100 * event.loaded / event.total;
       }
    }
    async function All() {
       var data = null;
-      var mem  = {};
 
       data = await Clean(mem);   
       console.log("[Clean]", data);
@@ -92,7 +138,7 @@
       const res      = await fetch('/unpack', options);
       const data     = await res.json();
 
-      if (log) console.log("[UnPack]", data);
+      if (log) console.log("[UnPack]", params, data);
       return data;
    }
    async function RePack(mem, log=false) {
@@ -101,7 +147,7 @@
       const res      = await fetch('/repack', options);
       const data     = await res.json();
 
-      if (log) console.log("[RePack]", data);
+      if (log) console.log("[RePack]", params, data);
       return data;
    }
    async function Clean(mem, log=false) {
@@ -110,7 +156,7 @@
       const res      = await fetch('/clean', options);
       const data     = await res.json();
 
-      if (log) console.log("[Clean]", data);
+      if (log) console.log("[Clean]", params, data);
       return data;
    }
    async function GetName(mem, log=false) {
@@ -119,24 +165,97 @@
       const res      = await fetch('/getname', options);
       const data     = await res.json();
 
-      if (log) console.log("[GetName]", data);
+      if (log) console.log("[GetName]", params, data);
       return data;
    }
    async function Replace(mem, log=false) {
-      const params   = JSON.stringify( { apkname:apkname } )
+      if (!mem.current || !mem.replace) return null;
+
+      const params   = JSON.stringify( { apkname:apkname, current:mem.current, replace:mem.replace } )
       const options  = Object.assign({body: params},trade3Option);
       const res      = await fetch('/replace', options);
       const data     = await res.json();
 
-      if (log) console.log("[Replace]", data);
+      if (log) console.log("[Replace]", params, data);
       return data;
+   }
+   function currentname() {
+      const elmCurrentDomain  = document.getElementById("current_domain");
+      const elmCurrentCompany = document.getElementById("current_company");
+      const elmCurrentPackage = document.getElementById("current_package");
+
+      return         elmCurrentDomain.value 
+             + "." + elmCurrentCompany.value 
+             + "." + elmCurrentPackage.value;
+   }
+   function replacename() {
+      const elmReplaceDomain  = document.getElementById("replace_domain");
+      const elmReplaceCompany = document.getElementById("replace_company");
+      const elmReplacePackage = document.getElementById("replace_package");
+
+      return         elmReplaceDomain.value 
+             + "." + elmReplaceCompany.value 
+             + "." + elmReplacePackage.value;
+   }
+   async function ReplacePackage() {
+      const elmStatus= document.getElementById("replace_status");
+      const elmLink  = document.getElementById("download_link"); 
+      var data = null;
+      //var mem  = {};
+
+      mem.current = currentname();
+      mem.replace = replacename();
+      data = await Replace(mem, true); 
+      console.log("[Replace]", data);
+      elmStatus.innerText = "Replacing"
+      data = await RePack(mem);
+      console.log("[RePack]", data);
+      elmStatus.innerText = "Repacking"
+      await Clean(mem);   
+      console.log("[Clean]");
+      elmStatus.innerText = "Completed"
+
+      elmLink.innerText  = data.name;
+      elmLink.href       = data.name;
+   }
+   function splitname(fullname) {
+      return fullname.split(".");
    }
    document.getElementById("upload").onchange = function() {
       var file = document.getElementById("upload").files[0];
       var reader = new FileReader();
       reader.onload = function() {
-         sendFormData(file.name, reader.result)
+         const elmCurrentDomain  = document.getElementById("current_domain");
+         const elmCurrentCompany = document.getElementById("current_company");
+         const elmCurrentPackage = document.getElementById("current_package");
+         const elmReplaceDomain  = document.getElementById("replace_domain");
+         const elmReplaceCompany = document.getElementById("replace_company");
+         const elmReplacePackage = document.getElementById("replace_package");
+
          apkname = file.name;
+         sendFormData(file.name, reader.result, async ()=> {
+            var data = null;
+            var mem  = {};
+
+            data = await Clean(mem);   
+            console.log("[Clean]", data);
+
+            data = await UnPack(mem);  
+            console.log("[UnPack]", data);
+
+            data = await GetName(mem);
+            console.log("[GetName]", data);
+
+            const list = splitname(data.name);
+            console.log(list);
+
+            elmCurrentDomain.value  = list[0];
+            elmCurrentCompany.value = list[1];
+            elmCurrentPackage.value = list[2];
+            elmReplaceDomain.value  = list[0];
+            elmReplaceCompany.value = list[1];
+            elmReplacePackage.value = list[2];
+         })
       };
       reader.readAsDataURL(file);
    }

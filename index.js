@@ -7,7 +7,7 @@ const { resolve } = require('path');
 const { readdir } = require('fs').promises;
 const fs = require('fs');
 const app = express()
-const port = 3000
+const port = 8000
 
 //const cors    = require('cors');
 const busboy  = require('connect-busboy');
@@ -34,14 +34,26 @@ app.use(express.json());
 app.use(busboy({ highWaterMark: 2 * 1024 * 1024 })); // Insert the busboy middle-ware
 
 ///* 
-app.route('/upload').post((req, res, next) => {
+function propername(filename) {
+    const folder    = apk2folder(filename);
+    for (let i=0; i < 100; i++) {
+        const name = folder + i + ".apk";
+        if (! fs.existsSync(name)) return name;
+    }
+    return null;
+}
+app.route('/upload').post((req, res) => {
     var uploadname = "test.json";
     req.pipe(req.busboy); // Pipe it trough busboy
 
     req.busboy.on('field', (fieldname, data, filename) => {
         console.log(fieldname, data);
 
-        uploadname = data;
+        if (fs.existsSync(data)) {
+            uploadname = propername(data);
+        } else {
+            uploadname = data;
+        }
     });
 
     req.busboy.on('file', (fieldname, file, filename) => {
@@ -56,7 +68,8 @@ app.route('/upload').post((req, res, next) => {
         // On finish of the upload
         fstream.on('close', () => {
             console.log(`Upload of '${filename}' finished`);
-            res.redirect('back');
+            res.send(uploadname)
+            //res.redirect('back');
         });
     });
 });
@@ -117,8 +130,9 @@ function unpack(req, res) {
 function repack(req, res) {
     const apkname   = req.body.apkname;
     const folder    = apk2folder(apkname);
+    const outname   = folder + "-new.apk"
 
-    exec("./apktool b --use-aapt2 " + folder + " -o " + folder + "-new.apk", (error, stdout, stderr) => {
+    exec("./apktool b --use-aapt2 " + folder + " -o " + outname, (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             res.send(error.message)
@@ -130,7 +144,11 @@ function repack(req, res) {
             return;
         }
         console.log(`stdout: ${stdout}`);
-        const ret = JSON.stringify({res: stdout})
+        fs.rename(outname, "public/" + outname, (err) => {
+            if (err) throw err
+            console.log('Successfully renamed - AKA moved!')
+        })
+        const ret = JSON.stringify({name: outname})
         res.send(ret)
     })
 }
