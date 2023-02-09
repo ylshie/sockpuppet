@@ -2,14 +2,35 @@
    <form id="form" action="/upload" method="post" enctype="multipart/form-data">
       <input type="file" id="upload">
    </form>
-   <button onclick="UnPack()">Unpack</button>
-   <button onclick="GetName()">Get Name</button>
+   <div>
+      <button onclick="Clean()">Clean</button>
+   </div>
+   <div>
+      <button onclick="UnPack()">Unpack</button>
+   </div>
+   <div>
+      <button onclick="GetName()">Get Name</button>
+   </div>
+   <div>
+      <button onclick="Replace()">Replace</button>
+   </div>
+   <div>
+      <button onclick="RePack()">Repack</button>
+   </div>
+   <br/>
+   <div>
+      <button onclick="All()">All</button>
+   </div>
 </Html>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/javascript-canvas-to-blob/3.4.0/js/canvas-to-blob.min.js"></script>
 
 <script>
-   var apkname = null;
+   var apkname = null;   
+   const trade3Option = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+   }
 
    function sendFormData(name, data) {
       const formData = new FormData();
@@ -26,48 +47,75 @@
       formData.append("file", blob);
       
       const request = new XMLHttpRequest();
-      request.open("POST", "http://localhost:3000/upload");
+      //request.open("POST", "http://localhost:3000/upload");
+      request.open("POST", "./upload");
       request.send(formData);
    }
-   async function UnPack() {
-      const trade3Header = { 'Content-Type': 'application/json' };
-      const trade3Option = {
-         method: 'POST',
-         headers: trade3Header,
-      }
-      let options     = Object.assign({},trade3Option);
-      options.body    = JSON.stringify( { apkname:apkname } ) ;
-      const res       = await fetch('/unpack', options);
-      const data      = await res.json();
+   async function All() {
+      var data = null;
+      var mem  = {};
 
-      console.log(data);
+      data = await Clean(mem);   
+      console.log("[Clean]", data);
+      data = await UnPack(mem);  
+      console.log("[UnPack]", data);
+      data = await GetName(mem); 
+      console.log("[GetName]", data);
+      mem.search = data;
+      data = await Replace(mem); 
+      console.log("[Replace]", data);
+      data = await RePack(mem);
+      console.log("[RePack]", data);
    }
-   async function GetName() {
-      const trade3Header = { 'Content-Type': 'application/json' };
-      const trade3Option = {
-         method: 'POST',
-         headers: trade3Header,
-      }
-      let options     = Object.assign({},trade3Option);
-      options.body    = JSON.stringify( { apkname:apkname } ) ;
-      const res       = await fetch('/getname', options);
-      const data      = await res.json();
+   async function UnPack(mem, log=false) {
+      const params   = JSON.stringify( { apkname:apkname } )
+      const options  = Object.assign({body: params},trade3Option);
+      const res      = await fetch('/unpack', options);
+      const data     = await res.json();
 
-      console.log(data);
+      if (log) console.log("[UnPack]", data);
+      return data;
    }
-   //const jsondata = {a: 1111, b: 2222}
+   async function RePack(mem, log=false) {
+      const params   = JSON.stringify( { apkname:apkname } )
+      const options  = Object.assign({body: params},trade3Option);
+      const res      = await fetch('/repack', options);
+      const data     = await res.json();
+
+      if (log) console.log("[RePack]", data);
+      return data;
+   }
+   async function Clean(mem, log=false) {
+      const params   = JSON.stringify( { apkname:apkname } )
+      const options  = Object.assign({body: params},trade3Option);
+      const res      = await fetch('/clean', options);
+      const data     = await res.json();
+
+      if (log) console.log("[Clean]", data);
+      return data;
+   }
+   async function GetName(mem, log=false) {
+      const params   = JSON.stringify( { apkname:apkname } )
+      const options  = Object.assign({body: params},trade3Option);
+      const res      = await fetch('/getname', options);
+      const data     = await res.json();
+
+      if (log) console.log("[GetName]", data);
+      return data;
+   }
+   async function Replace(mem, log=false) {
+      const params   = JSON.stringify( { apkname:apkname } )
+      const options  = Object.assign({body: params},trade3Option);
+      const res      = await fetch('/replace', options);
+      const data     = await res.json();
+
+      if (log) console.log("[Replace]", data);
+      return data;
+   }
    document.getElementById("upload").onchange = function() {
-   //   document.getElementById("form").submit();
-   //   sendFormData(jsondata);
       var file = document.getElementById("upload").files[0];
       var reader = new FileReader();
       reader.onload = function() {
-         //console.log(reader.result);
-         //document.getElementById("display").src = reader.result;
-         // image editing
-         // ...
-         //var blob = window.dataURLtoBlob(reader.result);
-         //console.log(blob, new File([blob], "image.png", {type: "image/png"}));
          sendFormData(file.name, reader.result)
          apkname = file.name;
       };
