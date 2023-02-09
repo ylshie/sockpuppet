@@ -97,7 +97,7 @@ function clean(req, res) {
 function unpack(req, res) {
     const apkname = req.body.apkname;
 
-    exec("apktool d " + apkname, (error, stdout, stderr) => {
+    exec("./apktool d " + apkname, (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             res.send(error.message)
@@ -118,7 +118,7 @@ function repack(req, res) {
     const apkname   = req.body.apkname;
     const folder    = apk2folder(apkname);
 
-    exec("apktool b --use-aapt2 " + folder + " -o " + folder + "-new.apk", (error, stdout, stderr) => {
+    exec("./apktool b --use-aapt2 " + folder + " -o " + folder + "-new.apk", (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             res.send(error.message)

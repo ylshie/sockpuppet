@@ -1,6 +1,6 @@
 <Html>
    <form id="form" action="/upload" method="post" enctype="multipart/form-data">
-      <input type="file" id="upload">
+      <input type="file" id="upload"><label id="upload_status"></label>
    </form>
    <div>
       <button onclick="Clean()">Clean</button>
@@ -32,7 +32,7 @@
       headers: { 'Content-Type': 'application/json' },
    }
 
-   function sendFormData(name, data) {
+   function sendFormData(name, data, fn) {
       const formData = new FormData();
 
       formData.append("name", name);
@@ -50,6 +50,25 @@
       //request.open("POST", "http://localhost:3000/upload");
       request.open("POST", "./upload");
       request.send(formData);
+      request.onreadystatechange = (event) => { // Call a function when the state changes.
+         if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
+            // Request finished. Do processing here.
+         } else {
+
+         }
+         console.log("onreadystatechange", event);
+      }
+      request.onload = () => {
+      // Request finished. Do processing here.
+         console.log("onload", event);
+         if (fn) fn();
+      };
+      request.onprogress = (event) => { 
+         console.log("onprogress", event);
+         const elm = document.getElementById("upload_status");
+
+         if (elm) elm.innerHTML = 100 * event.loaded / event.total;
+      }
    }
    async function All() {
       var data = null;
