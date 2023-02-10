@@ -5,11 +5,11 @@
    <div class="panel">
       <div class="block">
          <div class="title">
-            <label>1. Select apk file Choose file</label>
+            <label>1. Select apk file Choose file
          </div>
          <form id="form" action="/upload" method="post" enctype="multipart/form-data">
             <input type="file" id="upload">
-            <label id="upload_status"></label>
+            <label id="upload_status"></label></label><span id="progress_upload"></span>
          </form>
       </div> 
       <div class="block">
@@ -17,16 +17,31 @@
             <label>2. Change package name</label>
          </div>
          <div>
-            <label>current:</label>
-            <input type="text" id="current_domain"  disabled/>
-            <input type="text" id="current_company" disabled/>
-            <input type="text" id="current_package" disabled/>
+            <table>
+               <tr>
+                  <td>current:</td>
+                  <td><input type="text" class="field" id="current_domain"  disabled/></td>
+                  <td>.</td>
+                  <td><input type="text" class="field" id="current_company" disabled/></td>
+                  <td>.</td>
+                  <td><input type="text" class="field" id="current_package" disabled/></td>
+               </tr>
+               <tr>
+                  <td>replace:</td>
+                  <td><input type="text" class="field" id="replace_domain"  disabled/></td>
+                  <td>.</td>
+                  <td><input type="text" class="field" id="replace_company"/></td>
+                  <td>.</td>
+                  <td><input type="text" class="field" id="replace_package"/></td>
+               </tr>
+            </table>
          </div>
          <div>
-            <label>replace:</label>
-            <input type="text" id="replace_domain"  disabled/>
-            <input type="text" id="replace_company"/>
-            <input type="text" id="replace_package"/>
+            <ul>
+               <li>
+                  Change package name at replace field and click replace button to create new apk.
+               </li>
+            </ul>
          </div>
       </div>
       <div class="block">
@@ -34,35 +49,32 @@
             <label>3. Replace and create new apk</label>
          </div>
          <div>
-            <button onclick="ReplacePackage()">Replace</button>
-            <label id="replace_status"></label>
+            <button id="replace" onclick="ReplacePackage()">Replace</button>
+            <label id="replace_status"></label><span id="progress_replace"></span>
          </div>
          <div>
             Download here: <a id="download_link" href=""></a>
+            <div>
+            <ul>
+               <li>
+                  The created apk is not signed, you still need to signed a key before pulish or install it to test.
+               </li>
+               <li>
+                  Please also make sure using new key for the new key otherwise it will conflict with previous apk if user has 
+                  installed it at device before.
+               </li>
+               <li>
+                  Android system will check package name and sign key is unique cross device. Please must make sure both of them are new.
+               </li>
+               <li>
+                  But if you just update a new version for new package name apk via source code with old package name, then you should 
+                  make sure name and key use same name annd key as previous created new apk 
+               </li>
+            </ul>
+            </div>
          </div>
       </div>
    </div>
-   <!--
-   <div>
-      <button onclick="Clean()">Clean</button>
-   </div>
-   <div>
-      <button onclick="UnPack()">Unpack</button>
-   </div>
-   <div>
-      <button onclick="GetName()">Get Name</button>
-   </div>
-   <div>
-      <button onclick="Replace()">Replace</button>
-   </div>
-   <div>
-      <button onclick="RePack()">Repack</button>
-   </div>
-   <br/>
-   <div>
-      <button onclick="All()">All</button>
-   </div>
-   -->
 </Html>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/javascript-canvas-to-blob/3.4.0/js/canvas-to-blob.min.js"></script>
@@ -71,11 +83,54 @@
    var apkname = null;   
    var mem  = {};
 
+   resetUI();
    const trade3Option = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
    }
+   var progress_count = -1;
+   function progress_start(id) {
+      progress_count = 0;
+      progress(id);
+   }
+   function progress(id) {
+      if (progress_count < 0) return;
 
+      const elm   = document.getElementById(id);
+      var text    = ""
+
+      for (let i=0; i < progress_count % 10; i++) text += ".";
+      elm.innerText = text;
+      progress_count ++;
+
+      setTimeout(() => progress(id, text), 1000);
+   }
+   function progress_end(id) {
+      const elm = document.getElementById(id);
+
+      progress_count = -1;
+      elm.innerText = "";
+   }
+   function resetUI () {
+      const elmReplace        = document.getElementById("replace");
+      const elmReplaceCompany = document.getElementById("replace_company");
+      const elmReplacePackage = document.getElementById("replace_package");
+
+      elmReplaceCompany.value = ""
+      elmReplacePackage.value = ""
+      elmReplace.disabled = true;
+      elmReplaceCompany.disabled = true;
+      elmReplacePackage.disabled = true;
+   }
+   function activateUI () {
+      const elmReplace        = document.getElementById("replace");
+      const elmReplaceCompany = document.getElementById("replace_company");
+      const elmReplacePackage = document.getElementById("replace_package");
+
+      elmReplace.disabled = false;
+      elmReplaceCompany.disabled = false;
+      elmReplacePackage.disabled = false;
+   }
    function sendFormData(name, data, fn) {
       const formData = new FormData();
 
@@ -92,9 +147,10 @@
       
       const request = new XMLHttpRequest();
       const elm = document.getElementById("upload_status");
-      //request.open("POST", "http://localhost:3000/upload");
+      
       request.open("POST", "./upload");
       request.send(formData);
+
       if (elm) elm.innerHTML = "Uploading"
       request.onreadystatechange = (event) => { // Call a function when the state changes.
          if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
@@ -179,6 +235,12 @@
       if (log) console.log("[Replace]", params, data);
       return data;
    }
+   function emptyname() {
+      const elmReplaceCompany = document.getElementById("replace_company");
+      const elmReplacePackage = document.getElementById("replace_package");
+
+      return (elmReplaceCompany.value == "") || (elmReplacePackage.value == "");
+   }
    function currentname() {
       const elmCurrentDomain  = document.getElementById("current_domain");
       const elmCurrentCompany = document.getElementById("current_company");
@@ -205,15 +267,30 @@
 
       mem.current = currentname();
       mem.replace = replacename();
+
+      if (mem.current == mem.replace) {
+         alert("Package name is not changed, no need to replace.");
+         return;
+      }
+      if (emptyname()) {
+         alert("Package name can't have empty field.");
+         return;
+      }
+
+      elmStatus.innerText = "Replacing package"
+      progress_start("progress_replace");
       data = await Replace(mem, true); 
       console.log("[Replace]", data);
-      elmStatus.innerText = "Replacing"
+      
+      elmStatus.innerText = "Repacking package"
       data = await RePack(mem);
       console.log("[RePack]", data);
-      elmStatus.innerText = "Repacking"
+      
+      progress_end("progress_replace");
+      elmStatus.innerText = "Completed"
+
       await Clean(mem);   
       console.log("[Clean]");
-      elmStatus.innerText = "Completed"
 
       elmLink.innerText  = data.name;
       elmLink.href       = data.name;
@@ -233,16 +310,21 @@
          const elmReplacePackage = document.getElementById("replace_package");
 
          apkname = file.name;
+         resetUI();
+         progress_start("progress_upload")
          sendFormData(file.name, reader.result, async ()=> {
             var data = null;
             var mem  = {};
+            const elm = document.getElementById("upload_status");
 
+            if (elm) elm.innerText = "Analyzing package"
             data = await Clean(mem);   
             console.log("[Clean]", data);
 
             data = await UnPack(mem);  
             console.log("[UnPack]", data);
 
+            if (elm) elm.innerText = "Finding pakcage name"
             data = await GetName(mem);
             console.log("[GetName]", data);
 
@@ -255,6 +337,11 @@
             elmReplaceDomain.value  = list[0];
             elmReplaceCompany.value = list[1];
             elmReplacePackage.value = list[2];
+
+            if (elm) elm.innerText = "Analyzing finished"
+
+            progress_end("progress_upload")
+            activateUI();
          })
       };
       reader.readAsDataURL(file);

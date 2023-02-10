@@ -130,7 +130,7 @@ function unpack(req, res) {
 function repack(req, res) {
     const apkname   = req.body.apkname;
     const folder    = apk2folder(apkname);
-    const outname   = folder + "-new.apk"
+    const outname   = folder + "-unsigned.apk"
 
     exec("./apktool b --use-aapt2 " + folder + " -o " + outname, (error, stdout, stderr) => {
         if (error) {

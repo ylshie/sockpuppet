@@ -1,8 +1,11 @@
 .panel {
-    width: 50%;
+    width: min(600px,100%);
     background-color: lightgoldenrodyellow;
 }
 
+.field {
+    width: 100%;
+}
 .block {
     width: 95%;
     background-color: aquamarine;
