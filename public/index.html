@@ -246,18 +246,14 @@
       const elmCurrentCompany = document.getElementById("current_company");
       const elmCurrentPackage = document.getElementById("current_package");
 
-      return         elmCurrentDomain.value 
-             + "." + elmCurrentCompany.value 
-             + "." + elmCurrentPackage.value;
+      return [elmCurrentDomain.value, elmCurrentCompany.value, elmCurrentPackage.value];
    }
    function replacename() {
       const elmReplaceDomain  = document.getElementById("replace_domain");
       const elmReplaceCompany = document.getElementById("replace_company");
       const elmReplacePackage = document.getElementById("replace_package");
 
-      return         elmReplaceDomain.value 
-             + "." + elmReplaceCompany.value 
-             + "." + elmReplacePackage.value;
+      return [elmReplaceDomain.value, elmReplaceCompany.value, elmReplacePackage.value];
    }
    async function ReplacePackage() {
       const elmStatus= document.getElementById("replace_status");

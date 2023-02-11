@@ -158,6 +158,39 @@ function apk2folder(apkname) {
     return apkname.substring(0, index);
 }
 
+function getlaunch(data) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(data.toString(),"text/xml");
+    console.log(xmlDoc);
+    const list = xmlDoc.getElementsByTagName("activity")
+    console.log("activity",list);
+    var packagename = null;
+    for (let i=0; i < list.length; i++) {
+        //console.log(list[i]);
+        const name      = list[i].getAttribute("android:name");
+        const elIntents = xmlDoc.getElementsByTagName("intent-filter")
+        const elCategory=  (elIntents)?  elIntents[0].getElementsByTagName("category"): null;
+        const category  = (elCategory)? elCategory[0].getAttribute("android:name"): null;
+        
+        console.log(name, category);
+
+        if (category == "android.intent.category.LAUNCHER") {
+            packagename = name;
+            break;
+        }
+    }
+    return packagename;
+}
+
+function getpackage(data) {
+    const parser    = new DOMParser();
+    const xmlDoc    = parser.parseFromString(data.toString(),"text/xml");
+    const list      = xmlDoc.getElementsByTagName("manifest")
+    const name      = (list)? list[0].getAttribute("package"): null;
+          
+    return name;
+}
+
 function getpackagename(req, res) {
     const apkname   = req.body.apkname;
     const folder    = apk2folder(apkname);
@@ -166,28 +199,7 @@ function getpackagename(req, res) {
     fs.readFile(path, function (err, data) {
         if (err) throw err;
      
-        //console.log(data.toString());
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(data.toString(),"text/xml");
-        console.log(xmlDoc);
-        const list = xmlDoc.getElementsByTagName("activity")
-        console.log("activity",list);
-        var packagename = null;
-        for (let i=0; i < list.length; i++) {
-            //console.log(list[i]);
-            const name      = list[i].getAttribute("android:name");
-            const elIntents = xmlDoc.getElementsByTagName("intent-filter")
-            const elCategory=  (elIntents)?  elIntents[0].getElementsByTagName("category"): null;
-            const category  = (elCategory)? elCategory[0].getAttribute("android:name"): null;
-            
-            console.log(name, category);
-
-            if (category == "android.intent.category.LAUNCHER") {
-                packagename = name;
-                break;
-            }
-        }
-
+        const packagename = getpackage(data);
         const ret = JSON.stringify({name: packagename})
         res.send(ret)
     });
@@ -211,12 +223,20 @@ function replacefile(filename, search, replacement) {
 
 function replace(req, res) {
     const apkname   = req.body.apkname;
+    const current   = req.body.current;
+    const replace   = req.body.replace;
     const folder    = apk2folder(apkname);
+    const search1    = "L"+current[0]+"\/"+current[1]+"\/"+current[2]; // "sobox"
+    const replace1   = "L"+replace[0]+"\/"+replace[1]+"\/"+replace[2]; // "nobox"
+    const search2    = current[0]+"\."+current[1]+"\."+current[2];  // "sobox"
+    const replace2   = replace[0]+"\."+replace[1]+"\."+replace[2];  // "nobox"
+    /*
     const search1    = "Lcom\/sobox\/myui"; // "sobox"
     const replace1   = "Lcom\/nobox\/myui"; // "nobox"
     const search2    = "com\.sobox\.myui";  // "sobox"
     const replace2   = "com\.nobox\.myui";  // "nobox"
-    
+    */
+
     (async () => {
         for await (const filepath of getFiles(folder)) {
             replacefile(filepath, search1, replace1);
